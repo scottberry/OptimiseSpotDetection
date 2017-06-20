@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import matlab.engine
 import pandas as pd
 import numpy as np
@@ -47,8 +49,12 @@ def parse_arguments():
         help='channel name'
     )
     parser.add_argument(
-        '-i', '--input_file', type=str, required=True,
-        help='filename for input file (.csv)'
+        '--input_batch_file', type=str, required=True,
+        help='filename for batch input file (.csv)'
+    )
+    parser.add_argument(
+        '--input_aggregate_file', type=str, required=True,
+        help='filename for the aggregated input file (.csv)'
     )
     parser.add_argument(
         '-o', '--output_file', type=str, required=True,
@@ -84,14 +90,12 @@ def main(args):
     eng.addpath('/home/ubuntu/JtLibrary/src/matlab/', nargout=0)
 
     # read rescaling_limits and aggregate by control
-    rescaling_limits = pd.read_csv(args.input_file, encoding='utf-8')
-    grouped = rescaling_limits.groupby('control')
-    columns = grouped['lower_limit', 'upper_limit']
-    aggregated_limits = columns.agg([
-        np.mean, np.min, np.max,
-        percentile(10), percentile(40),
-        percentile(60), percentile(80)
-    ])
+    rescaling_limits = pd.read_csv(
+        args.input_batch_file, encoding='utf-8'
+    )
+    aggregated_limits = pd.read_csv(
+        args.input_aggregate_file, encoding='utf-8'
+    )
 
     # set options for ObjByFilter.mls
     op = eng.cpsub.fspecialCP3D('2D LoG', 5.0)

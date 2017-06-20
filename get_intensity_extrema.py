@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -152,7 +154,7 @@ def select_random_sites(df, n_sites):
                 'well': row['well'],
                 'site_x': selected_sites_x,
                 'site_y': selected_sites_y
-            }, index=[index])
+            })
         )
     return selection
 
