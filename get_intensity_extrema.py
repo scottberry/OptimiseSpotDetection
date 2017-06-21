@@ -11,7 +11,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         prog='get_intensity_extrema',
         description=('Accesses images from TissueMAPS instance and '
-                     'writes a csv file of channel image intensity extrema.')
+                     'writes a pkl file of channel image intensity extrema.')
     )
     parser.add_argument(
         '-v', '--verbosity', action='count', default=0,
@@ -59,7 +59,7 @@ def parse_arguments():
     )
     parser.add_argument(
         '-o', '--output_file', type=str, required=True,
-        help='filename for output file (.csv)'
+        help='filename for output file (.pkl)'
     )
 
     return(parser.parse_args())
@@ -94,6 +94,8 @@ def main(args):
         )
     )
 
+    print rescaling_limits
+
     rescaling_limits = rescaling_limits.merge(
         select_random_sites(
             df=rescaling_limits,
@@ -110,7 +112,7 @@ def main(args):
         )
     )
 
-    rescaling_limits.to_csv(args.output_file, encoding='utf-8')
+    rescaling_limits.to_pickle(args.output_file)
     return
 
 

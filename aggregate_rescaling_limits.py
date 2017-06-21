@@ -12,11 +12,11 @@ def parse_arguments():
     )
     parser.add_argument(
         '-i', '--input_files', type=str, nargs='+', required=True,
-        help='list of input files to be aggregated (.csv)'
+        help='list of input files to be aggregated (.pkl)'
     )
     parser.add_argument(
-        '-o', '--output_file', type=str, default='aggregated_limits.csv',
-        help='filename for output file (.csv)'
+        '-o', '--output_file', type=str, default='aggregated_limits.pkl',
+        help='filename for output file (.pkl)'
     )
 
     return(parser.parse_args())
@@ -34,7 +34,7 @@ def main(args):
     rescaling_limits_list = []
     for index, filename in enumerate(args.input_files):
         rescaling_limits_list.append(
-            pd.read_csv(filename, encoding='utf-8')
+            pd.read_pickle(filename)
         )
     rescaling_limits = pd.concat(rescaling_limits_list)
 
@@ -46,7 +46,9 @@ def main(args):
         percentile(60), percentile(80)
     ])
 
-    aggregated_limits.to_csv(args.output_file, encoding='utf-8')
+    print aggregated_limits
+
+    aggregated_limits.to_pickle(args.output_file)
 
     return
 

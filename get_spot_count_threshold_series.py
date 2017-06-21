@@ -50,11 +50,11 @@ def parse_arguments():
     )
     parser.add_argument(
         '--input_batch_file', type=str, required=True,
-        help='filename for batch input file (.csv)'
+        help='filename for batch input file (.pkl)'
     )
     parser.add_argument(
         '--input_aggregate_file', type=str, required=True,
-        help='filename for the aggregated input file (.csv)'
+        help='filename for the aggregated input file (.pkl)'
     )
     parser.add_argument(
         '-o', '--output_file', type=str, required=True,
@@ -90,12 +90,10 @@ def main(args):
     eng.addpath('/home/ubuntu/JtLibrary/src/matlab/', nargout=0)
 
     # read rescaling_limits and aggregate by control
-    rescaling_limits = pd.read_csv(
-        args.input_batch_file, encoding='utf-8'
-    )
-    aggregated_limits = pd.read_csv(
-        args.input_aggregate_file, encoding='utf-8'
-    )
+    rescaling_limits = pd.read_pickle(args.input_batch_file)
+    aggregated_limits = pd.read_pickle(args.input_aggregate_file)
+
+    print aggregated_limits.lower_limit
 
     # set options for ObjByFilter.mls
     op = eng.cpsub.fspecialCP3D('2D LoG', 5.0)

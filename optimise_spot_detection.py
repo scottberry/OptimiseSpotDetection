@@ -25,26 +25,22 @@ class OptimiseSpotDetectionScript(SessionBasedScript):
         super(OptimiseSpotDetectionScript, self).__init__(version='1.0')
 
     def setup_args(self):
-        self.add_param('host', help=('TissueMAPS host address'))
-        self.add_param('username', help=('TissueMAPS username'))
-        self.add_param('password', help=('TissueMAPS password'))
-        self.add_param('experiment', help=('TissueMAPS experiment name'))
-        self.add_param('plate', help=('Plate name'))
-        self.add_param('channel', help=('Channel name'))
-        self.add_param('positive_wells', nargs='+', help=('Postive wells'))
-        self.add_param('negative_wells', nargs='+', help=('Negative wells'))
-        self.add_param('thresholds', nargs=3, default=[0.02, 0.04, 0.02],
+        self.add_param('--host', type=str, help=('TissueMAPS host address'))
+        self.add_param('--username', type=str, help=('TissueMAPS username'))
+        self.add_param('--password', type=str, help=('TissueMAPS password'))
+        self.add_param('--experiment', type=str, help=('TissueMAPS experiment name'))
+        self.add_param('--plate', type=str, help=('Plate name'))
+        self.add_param('--channel', type=str, help=('Channel name'))
+        self.add_param('--positive_wells', nargs='+', help=('Postive wells'))
+        self.add_param('--negative_wells', nargs='+', help=('Negative wells'))
+        self.add_param('--thresholds', nargs=3, default=[0.02, 0.04, 0.02],
                        type=float, help=('Thresholds to test'))
-        self.add_param('n_sites',
+        self.add_param('--n_sites', type=int,
                        help=('Batch size: number of images per well'))
-        self.add_param('n_batches', help=('Number of batches'))
+        self.add_param('--n_batches', type=int, help=('Number of batches'))
 
     def new_tasks(self, extra):
-        apps = []
-        for input_file in self.params.images:
-            apps.append(
-                OptimiseSpotDetectionPipeline(self.params)
-            )
+        apps = [OptimiseSpotDetectionPipeline(self.params)]
         return apps
 
 
@@ -54,6 +50,7 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
     '''
 
     def __init__(self, params):
+        self.params = params
         StagedTaskCollection.__init__(self, output_dir='')
 
     # Get intensity extrema
@@ -75,7 +72,7 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
     def stage1(self):
         return AggregateRescalingLimitsApp(
             self.params.n_batches,
-            out='aggregated_rescaling_limits.csv'
+            self.params.experiment
         )
 
     # Perform spot detection
@@ -87,8 +84,6 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
             self.params.experiment,
             self.params.plate,
             self.params.channel,
-            self.params.input_batch_file,
-            'aggregated_rescaling_limits.csv',
             self.params.thresholds,
             self.params.n_batches
         )
@@ -116,30 +111,31 @@ class GetIntensityExtremaParallel(ParallelTaskCollection):
 
 class GetIntensityExtremaApp(Application):
     '''
-    Get intensity extrema for a batch of images and write as csv file
+    Get intensity extrema for a batch of images and write as python pickle
     '''
 
     def __init__(self, host, username, password, experiment,
                  negative_wells, positive_wells, plate, channel,
                  n_sites, batch_id):
         out = 'intensity_extrema_{num:03d}'.format(num=batch_id)
+        out_dir = experiment + '_' + out
         Application.__init__(
             self,
             arguments=[
-                'get_intensity_extrema.py',
+                './get_intensity_extrema.py',
                 '--host', host,
                 '--user', username,
                 '--password', password,
                 '--experiment', experiment,
                 '--plate', plate,
                 '--channel', channel,
-                '--negative_wells', negative_wells,
-                '--positive_wells', positive_wells,
+                '--negative_wells', ' '.join(negative_wells),
+                '--positive_wells', ' '.join(positive_wells),
                 '--number_sites', n_sites,
-                '--output_file', out + '.csv'],
-            inputs=[],
-            outputs=[out + '.csv'],
-            output_dir=out + '.d',
+                '--output_file', out + '.pkl'],
+            inputs=['get_intensity_extrema.py'],
+            outputs=[out + '.pkl'],
+            output_dir=out_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
             requested_memory=1 * GB)
@@ -150,21 +146,28 @@ class AggregateRescalingLimitsApp(Application):
     Aggregate batches of results from GetIntensityExtremaApp
     '''
 
-    def __init__(self, n_batches, out):
-        input_list = []
+    def __init__(self, n_batches, experiment):
+        input_list_filepath = []
         for batch_id in range(n_batches):
-            input_list.append(
-                'intensity_extrema_{num:03d}.csv'.format(num=batch_id)
+            input_list_filepath.append(
+                os.path.join(
+                    os.getcwd(),
+                    experiment + '_intensity_extrema_{num:03d}'.format(num=batch_id),
+                    'intensity_extrema_{num:03d}.pkl'.format(num=batch_id)
+                )
             )
+        input_list_filepath_exec = input_list_filepath[:]
+        input_list_filepath_exec.append('aggregate_rescaling_limits.py')
+
         Application.__init__(
             self,
             arguments=[
-                'aggregate_rescaling_limits.py',
-                '--input_files', input_list,
-                '--output_file', out + '.csv'],
-            inputs=input_list,
-            outputs=[out + '.csv'],
-            output_dir=out + '.d',
+                './aggregate_rescaling_limits.py',
+                '--input_files'] + input_list_filepath + [
+                '--output_file', 'aggregated_rescaling_limits.pkl'],
+            inputs=input_list_filepath_exec,
+            outputs=['aggregated_rescaling_limits.pkl'],
+            output_dir=experiment + '_aggregated_extrema',
             stdout='stdout.txt',
             stderr='stderr.txt',
             requested_memory=1 * GB)
@@ -176,10 +179,20 @@ class GetSpotCountThresholdSeriesParallel(ParallelTaskCollection):
     '''
 
     def __init__(self, host, username, password, experiment,
-                 plate, channel, input_batch_file,
-                 input_aggregate_file, thresholds, n_batches):
+                 plate, channel, thresholds, n_batches):
         task_list = []
+        input_aggregate_file = os.path.join(
+            os.getcwd(),
+            experiment + '_aggregated_extrema',
+            'aggregated_rescaling_limits.pkl'
+        )
         for batch_id in range(n_batches):
+            input_batch_file = os.path.join(
+                os.getcwd(),
+                experiment +
+                '_intensity_extrema_{num:03d}'.format(num=batch_id),
+                'intensity_extrema_{num:03d}.pkl'.format(num=batch_id)
+            )
             task_list.append(
                 GetSpotCountThresholdSeriesApp(
                     host, username, password, experiment,
@@ -198,11 +211,12 @@ class GetSpotCountThresholdSeriesApp(Application):
     def __init__(self, host, username, password, experiment,
                  plate, channel, input_batch_file, input_aggregate_file,
                  thresholds, batch_id):
+
         out = 'spot_count_{num:03d}'.format(num=batch_id)
         Application.__init__(
             self,
             arguments=[
-                'get_spot_count_threshold_series.py',
+                './get_spot_count_threshold_series.py',
                 '--host', host,
                 '--user', username,
                 '--password', password,
@@ -212,9 +226,11 @@ class GetSpotCountThresholdSeriesApp(Application):
                 '--input_batch_file', input_batch_file,
                 '--input_aggregate_file', input_aggregate_file,
                 '--output_file', out + '.csv'],
-            inputs=[input_file],
+            inputs=[input_aggregate_file,
+                    input_batch_file,
+                    'get_spot_count_threshold_series.py'],
             outputs=[out + '.csv'],
-            output_dir=out + '.d',
+            output_dir=experiment + '_' + out,
             stdout='stdout.txt',
             stderr='stderr.txt',
             requested_memory=1 * GB
