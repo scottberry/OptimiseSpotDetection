@@ -93,8 +93,6 @@ def main(args):
     rescaling_limits = pd.read_pickle(args.input_batch_file)
     aggregated_limits = pd.read_pickle(args.input_aggregate_file)
 
-    print aggregated_limits.lower_limit
-
     # set options for ObjByFilter.mls
     op = eng.cpsub.fspecialCP3D('2D LoG', 5.0)
     detection_thresholds = np.arange(
