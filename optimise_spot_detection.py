@@ -88,6 +88,20 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
             self.params.n_batches
         )
 
+    # Aggregate spot detection
+    def stage3(self):
+        return AggregateSpotCountThresholdSeriesApp(
+            self.params.n_batches,
+            self.params.experiment
+        )
+
+    # Plot results
+    def stage4(self):
+        return PlotSpotCountThresholdSeriesApp(
+            self.tasks[3].output_dir,
+            self.params.experiment
+        )
+
 
 class GetIntensityExtremaParallel(ParallelTaskCollection):
     '''
@@ -118,7 +132,7 @@ class GetIntensityExtremaApp(Application):
                  negative_wells, positive_wells, plate, channel,
                  n_sites, batch_id):
         out = 'intensity_extrema_{num:03d}'.format(num=batch_id)
-        out_dir = experiment + '_' + out
+        out_dir = os.path.join(experiment, out)
         Application.__init__(
             self,
             arguments=[
@@ -152,12 +166,15 @@ class AggregateRescalingLimitsApp(Application):
             input_list_filepath.append(
                 os.path.join(
                     os.getcwd(),
-                    experiment + '_intensity_extrema_{num:03d}'.format(num=batch_id),
+                    experiment,
+                    'intensity_extrema_{num:03d}'.format(num=batch_id),
                     'intensity_extrema_{num:03d}.pkl'.format(num=batch_id)
                 )
             )
         input_list_filepath_exec = input_list_filepath[:]
         input_list_filepath_exec.append('aggregate_rescaling_limits.py')
+
+        output_dir = os.path.join(experiment, 'aggregated_extrema')
 
         Application.__init__(
             self,
@@ -167,7 +184,7 @@ class AggregateRescalingLimitsApp(Application):
                 '--output_file', 'aggregated_rescaling_limits.pkl'],
             inputs=input_list_filepath_exec,
             outputs=['aggregated_rescaling_limits.pkl'],
-            output_dir=experiment + '_aggregated_extrema',
+            output_dir=output_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
             requested_memory=1 * GB)
@@ -183,14 +200,15 @@ class GetSpotCountThresholdSeriesParallel(ParallelTaskCollection):
         task_list = []
         input_aggregate_file = os.path.join(
             os.getcwd(),
-            experiment + '_aggregated_extrema',
+            experiment,
+            'aggregated_extrema',
             'aggregated_rescaling_limits.pkl'
         )
         for batch_id in range(n_batches):
             input_batch_file = os.path.join(
                 os.getcwd(),
-                experiment +
-                '_intensity_extrema_{num:03d}'.format(num=batch_id),
+                experiment,
+                'intensity_extrema_{num:03d}'.format(num=batch_id),
                 'intensity_extrema_{num:03d}.pkl'.format(num=batch_id)
             )
             task_list.append(
@@ -213,6 +231,7 @@ class GetSpotCountThresholdSeriesApp(Application):
                  thresholds, batch_id):
 
         out = 'spot_count_{num:03d}'.format(num=batch_id)
+        output_dir = os.path.join(experiment, out)
         Application.__init__(
             self,
             arguments=[
@@ -230,8 +249,70 @@ class GetSpotCountThresholdSeriesApp(Application):
                     input_batch_file,
                     'get_spot_count_threshold_series.py'],
             outputs=[out + '.csv'],
-            output_dir=experiment + '_' + out,
+            output_dir=output_dir,
             stdout='stdout.txt',
+            stderr='stderr.txt',
+            requested_memory=1 * GB
+        )
+
+
+class AggregateSpotCountThresholdSeriesApp(Application):
+    '''
+    Aggregate spot count results into a single csv file
+    '''
+
+    def __init__(self, n_batches, experiment):
+
+        input_filepath_list = []
+        out = 'aggregated_spot_count.csv'
+        output_dir = os.path.join(experiment, 'aggregated_spot_count')
+
+        for batch_id in range(n_batches):
+            input_filepath_list.append(
+                os.path.join(
+                    os.getcwd(),
+                    experiment,
+                    'spot_count_{num:03d}'.format(num=batch_id),
+                    'spot_count_{num:03d}.csv'.format(num=batch_id)
+                )
+            )
+
+        Application.__init__(
+            self,
+            arguments=['concatenate_csv.sh'] + input_filepath_list,
+            inputs=['concatenate_csv.sh'] + input_filepath_list,
+            outputs=[out],
+            output_dir=output_dir,
+            stdout=out,
+            stderr='stderr.txt',
+            requested_memory=1 * GB
+        )
+
+
+class PlotSpotCountThresholdSeriesApp(Application):
+    '''
+    Plot spot count as a function of threshold for positive and
+    negative controls.
+    '''
+
+    def __init__(self, input_dir, experiment):
+
+        input_file = os.path.join(
+            os.getcwd(),
+            input_dir,
+            'aggregated_spot_count.csv'
+        )
+        out = experiment + '_spot_count.pdf'
+        output_dir = os.path.join(experiment, '_plots')
+
+        Application.__init__(
+            self,
+            arguments=['./PlotSpotDetectionThresholdSeries.R', '-f',
+                       input_file, '-o', out],
+            inputs=['PlotSpotDetectionThresholdSeries.R', input_file],
+            outputs=[out],
+            output_dir=output_dir,
+            stdout=out,
             stderr='stderr.txt',
             requested_memory=1 * GB
         )
