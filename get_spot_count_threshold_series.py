@@ -147,6 +147,8 @@ def main(args):
     spot_count = rescaling_limits.merge(spot_count)
     spot_count.to_csv(args.output_file, encoding='utf-8', index=False)
 
+    eng.quit()
+
     return
 
 
