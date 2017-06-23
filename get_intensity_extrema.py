@@ -94,8 +94,6 @@ def main(args):
         )
     )
 
-    print rescaling_limits
-
     rescaling_limits = rescaling_limits.merge(
         select_random_sites(
             df=rescaling_limits,
@@ -161,7 +159,7 @@ def select_random_sites(df, n_sites):
     return selection
 
 
-def get_extrema_of_sites(df, client, channel_name, plate_name, lower_percentile=0.5, upper_percentile=99.5):
+def get_extrema_of_sites(df, client, channel_name, plate_name, lower_percentile=1.0, upper_percentile=99.5):
     extrema = pd.DataFrame()
     for index, row in df.iterrows():
         image = client.download_channel_image(
