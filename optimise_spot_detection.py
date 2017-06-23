@@ -240,6 +240,7 @@ class GetSpotCountThresholdSeriesApp(Application):
                 '--user', username,
                 '--password', password,
                 '--experiment', experiment,
+                '--thresholds'] + thresholds + [
                 '--plate', plate,
                 '--channel', channel,
                 '--input_batch_file', input_batch_file,
@@ -302,17 +303,19 @@ class PlotSpotCountThresholdSeriesApp(Application):
             input_dir,
             'aggregated_spot_count.csv'
         )
-        out = experiment + '_spot_count.pdf'
-        output_dir = os.path.join(experiment, '_plots')
+        out_all = experiment + '_all_spot_count.pdf'
+        out_mean = experiment + '_mean_spot_count.pdf'
+        output_dir = os.path.join(experiment, 'plots')
 
         Application.__init__(
             self,
             arguments=['./PlotSpotDetectionThresholdSeries.R', '-f',
-                       input_file, '-o', out],
+                       input_file, '--out_all', out_all,
+                       '--out_mean', out_mean],
             inputs=['PlotSpotDetectionThresholdSeries.R', input_file],
-            outputs=[out],
+            outputs=[out_all, out_mean],
             output_dir=output_dir,
-            stdout=out,
+            stdout='stdout.txt',
             stderr='stderr.txt',
             requested_memory=1 * GB
         )
