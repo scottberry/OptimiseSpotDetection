@@ -9,7 +9,9 @@ option_list = list(
   make_option(c("--out_all"), type="character", default="out_all.pdf", 
               help="output file name [default= %default]", metavar="character"),
   make_option(c("--out_mean"), type="character", default="out_mean.pdf", 
-              help="output file name [default= %default]", metavar="character")
+              help="output file name [default= %default]", metavar="character"),
+  make_option(c("--maximum"), type="integer", default=Inf,
+              help="maximum value to plot [default= %default]", metavar="integer")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
@@ -30,7 +32,7 @@ df$controlwell <- paste(df$control,df$well,sep='_')
 output <- ggplot(data=df,aes(x=threshold,y=spot_count,col=control,group=site)) + 
   geom_point(alpha=0.4,size=.2) + geom_line(alpha=0.4) + 
   scale_x_continuous(name = "IdentifySpots2D threshold",limits=c(0,NA)) +
-  scale_y_continuous(name = "Spots per acquisition site",limits=c(0,NA))
+  scale_y_continuous(name = "Spots per acquisition site",limits=c(0,opt$maximum))
 ggsave(filename=opt$out_all, output,width=12,height=8, units="cm")
 
 # aggregate by control
@@ -40,6 +42,6 @@ names(mean) <- c("controlwell","threshold","mean_spot_count")
 output <- ggplot(data=mean,aes(x=threshold,y=mean_spot_count,col=controlwell)) + 
   geom_point() + geom_line() + 
   scale_x_continuous(name = "IdentifySpots2D threshold",limits=c(0,NA)) +
-  scale_y_continuous(name = "Spots per acquisition site",limits=c(0,NA))
+  scale_y_continuous(name = "Spots per acquisition site",limits=c(0,opt$maximum))
 ggsave(filename=opt$out_mean, output,width=12,height=8, units="cm")
 
