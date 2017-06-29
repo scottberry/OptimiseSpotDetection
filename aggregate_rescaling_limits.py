@@ -3,7 +3,8 @@
 import pandas as pd
 import numpy as np
 import argparse
-
+import os
+import os.path
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -46,9 +47,16 @@ def main(args):
         percentile(60), percentile(80)
     ])
 
-    print aggregated_limits
-
     aggregated_limits.to_pickle(args.output_file)
+
+    aggregated_limits['lower_limit'].to_csv(
+        os.path.splitext(
+            os.path.basename(args.output_file))[0] + '_lower_limit.csv'
+    )
+    aggregated_limits['upper_limit'].to_csv(
+        os.path.splitext(
+            os.path.basename(args.output_file))[0] + '_upper_limit.csv'
+    )
 
     return
 
