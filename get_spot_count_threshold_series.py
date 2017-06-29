@@ -101,9 +101,9 @@ def main(args):
         args.thresholds[2])
     iImgLimes = matlab.double([0.01, 0.995])
     iRescaleThr = matlab.double([
-        aggregated_limits.lower_limit.loc['negative']['percentile_10'],
+        aggregated_limits.lower_limit.loc['negative']['percentile_80'],
         aggregated_limits.upper_limit.loc['negative']['percentile_80'],
-        aggregated_limits.upper_limit.loc['positive']['percentile_40'],
+        aggregated_limits.upper_limit.loc['positive']['percentile_80'],
         aggregated_limits.upper_limit.loc['positive']['percentile_80']])
     iObjIntensityThr = matlab.uint16([])
     DetectionBias = matlab.uint16([])
@@ -125,7 +125,7 @@ def main(args):
         for threshold in np.nditer(detection_thresholds):
 
             '''Note: second returned argument from ObjByFilter.m
-            is matlab CC object (as a python dict) which stored the
+            is matlab CC object (as a python dict) which stores the
             NumObjects attribute. This is the calculated spot count
             '''
 
