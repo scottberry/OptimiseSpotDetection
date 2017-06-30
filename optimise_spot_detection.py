@@ -183,7 +183,9 @@ class AggregateRescalingLimitsApp(Application):
                 '--input_files'] + input_list_filepath + [
                 '--output_file', 'aggregated_rescaling_limits.pkl'],
             inputs=input_list_filepath_exec,
-            outputs=['aggregated_rescaling_limits.pkl'],
+            outputs=['aggregated_rescaling_limits.pkl',
+                     'aggregated_rescaling_limits_lower_limit.csv',
+                     'aggregated_rescaling_limits_upper_limit.csv'],
             output_dir=output_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
@@ -305,6 +307,7 @@ class PlotSpotCountThresholdSeriesApp(Application):
         )
         out_all = experiment + '_all_spot_count.pdf'
         out_mean = experiment + '_mean_spot_count.pdf'
+        out_csv = experiment + '_mean_spot_count.csv'
         output_dir = os.path.join(experiment, 'plots')
 
         Application.__init__(
@@ -313,7 +316,7 @@ class PlotSpotCountThresholdSeriesApp(Application):
                        input_file, '--out_all', out_all,
                        '--out_mean', out_mean],
             inputs=['PlotSpotDetectionThresholdSeries.R', input_file],
-            outputs=[out_all, out_mean],
+            outputs=[out_all, out_mean, out_csv],
             output_dir=output_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
