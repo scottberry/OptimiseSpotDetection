@@ -65,6 +65,11 @@ def parse_arguments():
         nargs=3, metavar=('start', 'end', 'step'),
         type=float, help='specify a range of thresholds'
     )
+    parser.add_argument(
+        '--hard_rescaling', default=[0.0, 0.0, 0.0, 0.0],
+        nargs=4, type=float,
+        help='specify hard rescaling thresholds (if required)'
+    )
 
     return(parser.parse_args())
 
@@ -100,11 +105,28 @@ def main(args):
         args.thresholds[1],
         args.thresholds[2])
     iImgLimes = matlab.double([0.01, 0.995])
+
+    min_of_min = (
+        args.hard_rescaling[0] if args.hard_rescaling[0] != 0
+        else aggregated_limits.lower_limit.loc['negative']['percentile_80']
+    )
+    max_of_min = (
+        args.hard_rescaling[1] if args.hard_rescaling[1] != 0
+        else aggregated_limits.upper_limit.loc['negative']['percentile_80']
+    )
+    min_of_max = (
+        args.hard_rescaling[2] if args.hard_rescaling[2] != 0
+        else aggregated_limits.upper_limit.loc['positive']['percentile_80']
+    )
+    max_of_max = (
+        args.hard_rescaling[3] if args.hard_rescaling[3] != 0
+        else aggregated_limits.upper_limit.loc['positive']['percentile_80']
+    )
+
     iRescaleThr = matlab.double([
-        aggregated_limits.lower_limit.loc['negative']['percentile_80'],
-        aggregated_limits.upper_limit.loc['negative']['percentile_80'],
-        aggregated_limits.upper_limit.loc['positive']['percentile_80'],
-        aggregated_limits.upper_limit.loc['positive']['percentile_80']])
+        min_of_min, min_of_max, max_of_min, max_of_max
+    ])
+
     iObjIntensityThr = matlab.uint16([])
     DetectionBias = matlab.uint16([])
 

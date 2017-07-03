@@ -28,13 +28,17 @@ class OptimiseSpotDetectionScript(SessionBasedScript):
         self.add_param('--host', type=str, help=('TissueMAPS host address'))
         self.add_param('--username', type=str, help=('TissueMAPS username'))
         self.add_param('--password', type=str, help=('TissueMAPS password'))
-        self.add_param('--experiment', type=str, help=('TissueMAPS experiment name'))
+        self.add_param('--experiment', type=str,
+                       help=('TissueMAPS experiment name'))
         self.add_param('--plate', type=str, help=('Plate name'))
         self.add_param('--channel', type=str, help=('Channel name'))
         self.add_param('--positive_wells', nargs='+', help=('Postive wells'))
         self.add_param('--negative_wells', nargs='+', help=('Negative wells'))
         self.add_param('--thresholds', nargs=3, default=[0.02, 0.04, 0.02],
                        type=float, help=('Thresholds to test'))
+        self.add_param('--hard_rescaling', nargs=4,
+                       default=[0.0, 0.0, 0.0, 0.0],
+                       type=float, help=('Hard rescaling thresholds'))
         self.add_param('--n_sites', type=int,
                        help=('Batch size: number of images per well'))
         self.add_param('--n_batches', type=int, help=('Number of batches'))
@@ -85,7 +89,8 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
             self.params.plate,
             self.params.channel,
             self.params.thresholds,
-            self.params.n_batches
+            self.params.n_batches,
+            self.params.hard_rescaling
         )
 
     # Aggregate spot detection
@@ -198,7 +203,7 @@ class GetSpotCountThresholdSeriesParallel(ParallelTaskCollection):
     '''
 
     def __init__(self, host, username, password, experiment,
-                 plate, channel, thresholds, n_batches):
+                 plate, channel, thresholds, n_batches, hard_rescaling):
         task_list = []
         input_aggregate_file = os.path.join(
             os.getcwd(),
@@ -217,7 +222,8 @@ class GetSpotCountThresholdSeriesParallel(ParallelTaskCollection):
                 GetSpotCountThresholdSeriesApp(
                     host, username, password, experiment,
                     plate, channel, input_batch_file,
-                    input_aggregate_file, thresholds, batch_id
+                    input_aggregate_file, thresholds,
+                    batch_id, hard_rescaling
                 )
             )
         ParallelTaskCollection.__init__(self, task_list, output_dir='')
@@ -230,7 +236,7 @@ class GetSpotCountThresholdSeriesApp(Application):
 
     def __init__(self, host, username, password, experiment,
                  plate, channel, input_batch_file, input_aggregate_file,
-                 thresholds, batch_id):
+                 thresholds, batch_id, hard_rescaling):
 
         out = 'spot_count_{num:03d}'.format(num=batch_id)
         output_dir = os.path.join(experiment, out)
@@ -243,6 +249,7 @@ class GetSpotCountThresholdSeriesApp(Application):
                 '--password', password,
                 '--experiment', experiment,
                 '--thresholds'] + thresholds + [
+                '--hard_rescaling'] + hard_rescaling + [
                 '--plate', plate,
                 '--channel', channel,
                 '--input_batch_file', input_batch_file,
