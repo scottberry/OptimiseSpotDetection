@@ -99,7 +99,7 @@ def main(args):
     aggregated_limits = pd.read_pickle(args.input_aggregate_file)
 
     # set options for ObjByFilter.mls
-    op = eng.cpsub.fspecialCP3D('2D LoG', 5.0)
+    op = eng.cpsub.fspecialCP3D('2D LoG', 6.0)
     detection_thresholds = np.arange(
         args.thresholds[0],
         args.thresholds[1],
@@ -108,7 +108,7 @@ def main(args):
 
     min_of_min = (
         args.hard_rescaling[0] if args.hard_rescaling[0] != 0
-        else aggregated_limits.lower_limit.loc['negative']['percentile_80']
+        else aggregated_limits.lower_limit.loc['negative']['percentile_10']
     )
     max_of_min = (
         args.hard_rescaling[1] if args.hard_rescaling[1] != 0
@@ -116,7 +116,7 @@ def main(args):
     )
     min_of_max = (
         args.hard_rescaling[2] if args.hard_rescaling[2] != 0
-        else aggregated_limits.upper_limit.loc['positive']['percentile_80']
+        else aggregated_limits.upper_limit.loc['positive']['percentile_40']
     )
     max_of_max = (
         args.hard_rescaling[3] if args.hard_rescaling[3] != 0
@@ -124,7 +124,7 @@ def main(args):
     )
 
     iRescaleThr = matlab.double([
-        min_of_min, min_of_max, max_of_min, max_of_max
+        min_of_min, max_of_min, min_of_max, max_of_max
     ])
 
     iObjIntensityThr = matlab.uint16([])
@@ -158,6 +158,10 @@ def main(args):
 
             spot_count = spot_count.append(
                 pd.DataFrame({
+                    'rescaling_limit_1': min_of_min,
+                    'rescaling_limit_2': max_of_min,
+                    'rescaling_limit_3': min_of_max,
+                    'rescaling_limit_4': max_of_max,
                     'threshold': threshold,
                     'well': row['well'],
                     'site_x': row['site_x'],
