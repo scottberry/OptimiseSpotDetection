@@ -121,7 +121,7 @@ def main(args):
     selected_sites = pd.read_pickle(args.input_batch_file)
 
     # set options for ObjByFilter
-    matlab.eval("op = cpsub.fspecialCP3D('3D LoG, Raj', 4.0, 1.0, 3.0);")
+    matlab.eval("op = cpsub.fspecialCP3D('3D LoG, Raj', 5.0, double(4.0)/3.0, 3.0);")
     detection_thresholds = np.arange(
         args.thresholds[0],
         args.thresholds[1],
@@ -191,8 +191,8 @@ def main(args):
             matlab.workspace.threshold = float(threshold)
 
             matlab.eval(
-                "[ObjCount SegCC] = cpsub.ObjByFilter(double(fish3D)," +
-                " op," +
+                "[ObjCount SegmentationCC] = cpsub.ObjByFilter(" +
+                "double(fish3D), op," +
                 " threshold, iImgLimes," +
                 "[min_of_min, max_of_min, min_of_max, max_of_max]," +
                 " [], false, [], []);"
