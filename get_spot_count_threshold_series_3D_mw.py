@@ -114,7 +114,9 @@ def main(args):
         password=args.password
     )
 
-    matlab = matlab_wrapper.MatlabSession(options='-nojvm')
+    matlab = matlab_wrapper.MatlabSession(
+        options='-nosplash -singleCompThread -nojvm -nosoftwareopengl'
+    )
     matlab.eval("addpath('~/repositories/JtLibrary/matlab/jtlibrary/')")
 
     # read rescaling_limits and aggregate by control
@@ -133,9 +135,11 @@ def main(args):
     matlab.workspace.min_of_max = float(args.hard_rescaling[2])
     matlab.workspace.max_of_max = float(args.hard_rescaling[3])
 
-    channels = tmaps_api.get_channels()
     sites = tmaps_api.get_sites()
-    z_depth = len(channels[0]['layers'])
+    channels = tmaps_api.get_channels()
+    for channel in channels:
+        if channel['name'] == 'FISH':
+            z_depth = len(channel['layers'])
 
     spot_count = pd.DataFrame()
     for index, row in selected_sites.iterrows():
@@ -176,17 +180,12 @@ def main(args):
                 correct=False,
                 zplane=z
             )
-            fish[cells == 0] = 0
+            fish[cells == 0] = 115
             fish3D[:,:,z] = fish
 
-        matlab.workspace.fish3D = fish3D.tolist()
+        matlab.workspace.fish3D = fish3D
 
         for threshold in np.nditer(detection_thresholds):
-
-            '''Note: second returned argument from ObjByFilter.m
-            is matlab CC object (as a python dict) which stores the
-            NumObjects attribute. This is the calculated spot count
-            '''
 
             matlab.workspace.threshold = float(threshold)
 
