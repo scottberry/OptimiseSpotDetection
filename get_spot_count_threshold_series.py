@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import matlab.engine
 import pandas as pd
 import numpy as np
@@ -92,7 +90,7 @@ def main(args):
     )
 
     eng = matlab.engine.start_matlab()
-    eng.addpath('/home/ubuntu/JtLibrary/src/matlab/', nargout=0)
+    eng.addpath('/data/homes/sberry/repositories/JtLibrary/src/matlab/', nargout=0)
 
     # read rescaling_limits and aggregate by control
     rescaling_limits = pd.read_pickle(args.input_batch_file)

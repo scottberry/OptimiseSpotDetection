@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import sys
 
 import os
@@ -141,7 +140,8 @@ class GetIntensityExtremaApp(Application):
         Application.__init__(
             self,
             arguments=[
-                './get_intensity_extrema.py',
+                'python',
+                'get_intensity_extrema.py',
                 '--host', host,
                 '--user', username,
                 '--password', password,
@@ -184,7 +184,8 @@ class AggregateRescalingLimitsApp(Application):
         Application.__init__(
             self,
             arguments=[
-                './aggregate_rescaling_limits.py',
+                'python',
+                'aggregate_rescaling_limits.py',
                 '--input_files'] + input_list_filepath + [
                 '--output_file', 'aggregated_rescaling_limits.pkl'],
             inputs=input_list_filepath_exec,
@@ -243,7 +244,8 @@ class GetSpotCountThresholdSeriesApp(Application):
         Application.__init__(
             self,
             arguments=[
-                './get_spot_count_threshold_series.py',
+                'python',
+                'get_spot_count_threshold_series.py',
                 '--host', host,
                 '--user', username,
                 '--password', password,
@@ -289,7 +291,7 @@ class AggregateSpotCountThresholdSeriesApp(Application):
 
         Application.__init__(
             self,
-            arguments=['concatenate_csv.sh'] + input_filepath_list,
+            arguments=['./concatenate_csv.sh'] + input_filepath_list,
             inputs=['concatenate_csv.sh'] + input_filepath_list,
             outputs=[out],
             output_dir=output_dir,
