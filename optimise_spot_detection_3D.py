@@ -199,7 +199,7 @@ class GetSpotCountThresholdSeries3DApp(Application):
             output_dir=output_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
-            requested_memory=7 * GB
+            requested_memory=15 * GB
         )
 
 
