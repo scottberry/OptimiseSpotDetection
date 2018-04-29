@@ -103,6 +103,24 @@ def segment_cells(dapi,se):
     return cells.secondary_label_image
 
 
+def aggregate_spot_intensity_2D(fish3D,mask):
+    from jtmodules import detect_blobs, measure_intensity, expand_or_shrink
+
+    fish2D = np.max(fish3D,axis=2)
+    spots = detect_blobs.main(
+        image=fish2D, mask=mask, threshold=10, mean_area=5, min_area=5
+    )
+    print np.max(np.max(spots.centroids)), ' spots detected'
+    expanded_spots = expand_or_shrink.main(image=spots.centroids,n=2)
+    measure_spots = measure_intensity.main(
+        extract_objects=expanded_spots.expanded_image,
+        assign_objects=expanded_spots.expanded_image,
+        intensity_image=fish2D,
+        aggregate=False
+    )
+    return(measure_spots.measurements[0].mean())
+
+
 def main(args):
 
     tmaps_api = TmClient(
@@ -146,6 +164,8 @@ def main(args):
     spot_count = pd.DataFrame()
     for index, row in selected_sites.iterrows():
 
+        print row['well']
+
         dapi = tmaps_api.download_channel_image(
             channel_name='DAPI',
             plate_name=args.plate,
@@ -167,6 +187,8 @@ def main(args):
         cells = segment_cells(dapi, se)
         n_cells = np.max(cells)
 
+        print 'cells:', n_cells
+
         fish3D = np.zeros(
             (sites[0]['height'],sites[0]['width'],z_depth),
             dtype=np.uint16
@@ -184,6 +206,10 @@ def main(args):
             )
             fish[cells == 0] = 0
             fish3D[:,:,z] = fish
+
+        spot_intensity = aggregate_spot_intensity_2D(fish3D,cells)
+        spot_intensity = spot_intensity.to_frame()
+        spot_intensity.columns = [index]
 
         fish_matlab = matlab.double(fish3D.tolist())
 
@@ -204,8 +230,8 @@ def main(args):
                 else 0.0
             )
 
-            spot_count = spot_count.append(
-                pd.DataFrame({
+            results = pd.DataFrame(
+                {
                     'rescaling_limit_1': min_of_min,
                     'rescaling_limit_2': max_of_min,
                     'rescaling_limit_3': min_of_max,
@@ -215,8 +241,13 @@ def main(args):
                     'site_x': row['site_x'],
                     'site_y': row['site_y'],
                     'mean_spot_count_per_cell': spots_per_cell
-                }, index=[index])
+                }, index=[index]
             )
+
+            spot_count = spot_count.append(
+                results.join(spot_intensity.transpose())
+            )
+
 
     spot_count = selected_sites.merge(spot_count)
     spot_count.to_csv(args.output_file, encoding='utf-8', index=False)
