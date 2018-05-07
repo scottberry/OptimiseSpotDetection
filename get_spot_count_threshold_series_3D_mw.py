@@ -61,6 +61,10 @@ def parse_arguments():
         nargs=4, type=float,
         help='specify hard rescaling thresholds'
     )
+    parser.add_argument(
+        '--filter_size', default=5.0, type=float,
+        help='specify size for LoG filter'
+    )
 
     return(parser.parse_args())
 
@@ -123,7 +127,8 @@ def main(args):
     selected_sites = pd.read_pickle(args.input_batch_file)
 
     # set options for ObjByFilter
-    matlab.eval("op = cpsub.fspecialCP3D('3D LoG, Raj', 5.0, double(4.0)/3.0, 3.0);")
+    matlab.workspace.filter_size = float(args.filter_size)
+    matlab.eval("op = cpsub.fspecialCP3D('3D LoG, Raj', double(filter_size), double(filter_size - 1.0)/3.0, 3.0);")
     detection_thresholds = np.arange(
         args.thresholds[0],
         args.thresholds[1],

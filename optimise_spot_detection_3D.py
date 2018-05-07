@@ -37,6 +37,8 @@ class OptimiseSpotDetection3DScript(SessionBasedScript):
         self.add_param('--hard_rescaling', nargs=4,
                        default=[120.0, 120.0, 1000.0, 1000.0],
                        type=float, help=('Hard rescaling thresholds'))
+        self.add_param('--filter_size', default=5.0, type=float,
+                       help=('specify size for LoG filter'))
         self.add_param('--n_sites', type=int,
                        help=('Batch size: number of images per well'))
         self.add_param('--n_batches', type=int, help=('Number of batches'))
@@ -79,7 +81,8 @@ class OptimiseSpotDetectionPipeline(StagedTaskCollection):
             self.params.plate,
             self.params.thresholds,
             self.params.n_batches,
-            self.params.hard_rescaling
+            self.params.hard_rescaling,
+            self.params.filter_size
         )
 
     # Aggregate spot detection
@@ -148,7 +151,7 @@ class GetSpotCountThresholdSeries3DParallel(ParallelTaskCollection):
     '''
 
     def __init__(self, host, username, password, experiment,
-                 plate, thresholds, n_batches, hard_rescaling):
+                 plate, thresholds, n_batches, hard_rescaling, filter_size):
         task_list = []
         for batch_id in range(n_batches):
             input_batch_file = os.path.join(
@@ -162,7 +165,7 @@ class GetSpotCountThresholdSeries3DParallel(ParallelTaskCollection):
                     host, username, password, experiment,
                     plate, input_batch_file,
                     thresholds,
-                    batch_id, hard_rescaling
+                    batch_id, hard_rescaling, filter_size
                 )
             )
         ParallelTaskCollection.__init__(self, task_list, output_dir='')
@@ -175,7 +178,7 @@ class GetSpotCountThresholdSeries3DApp(Application):
 
     def __init__(self, host, username, password, experiment,
                  plate, input_batch_file,
-                 thresholds, batch_id, hard_rescaling):
+                 thresholds, batch_id, hard_rescaling, filter_size):
 
         out = 'spot_count_{num:03d}'.format(num=batch_id)
         output_dir = os.path.join(experiment, out)
@@ -187,6 +190,7 @@ class GetSpotCountThresholdSeries3DApp(Application):
                 '--host', host,
                 '--user', username,
                 '--password', password,
+                '--filter_size', filter_size,
                 '--experiment', experiment,
                 '--thresholds'] + thresholds + [
                 '--hard_rescaling'] + hard_rescaling + [
