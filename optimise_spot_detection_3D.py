@@ -6,7 +6,7 @@ from os.path import basename
 import gc3libs
 from gc3libs.cmdline import SessionBasedScript
 from gc3libs import Application
-from gc3libs.quantity import GB
+from gc3libs.quantity import GB, minutes, hours
 from gc3libs.workflow import StagedTaskCollection, ParallelTaskCollection
 
 if __name__ == '__main__':
@@ -142,7 +142,8 @@ class GetSites3DApp(Application):
             output_dir=out_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
-            requested_memory=3 * GB)
+            requested_memory=3 * GB,
+            requested_walltime=20 * minutes)
 
 
 class GetSpotCountThresholdSeries3DParallel(ParallelTaskCollection):
@@ -203,7 +204,8 @@ class GetSpotCountThresholdSeries3DApp(Application):
             output_dir=output_dir,
             stdout='stdout.txt',
             stderr='stderr.txt',
-            requested_memory=15 * GB
+            requested_memory=15 * GB,
+            requested_walltime=3 * hours
         )
 
 
@@ -236,5 +238,6 @@ class AggregateSpotCountThresholdSeriesApp(Application):
             output_dir=output_dir,
             stdout=out,
             stderr='stderr.txt',
-            requested_memory=1 * GB
+            requested_memory=1 * GB,
+            requested_walltime=20 * minutes
         )
